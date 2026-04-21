@@ -1,0 +1,57 @@
+resources:
+  jobs:
+    youtube_intelligence_job:
+      name: "YouTube Intelligence — Full Run"
+
+      parameters:
+        - name: channel_handle
+          default: ${var.channel_handle}
+        - name: max_videos
+          default: "10"
+        - name: max_comments_per_video
+          default: "0"
+
+      environments:
+        - environment_key: default
+          spec:
+            client: "5"
+            dependencies:
+              - google-api-python-client==2.143.0
+              - databricks-sdk==0.30.0
+
+      tasks:
+        - task_key: api_ingest
+          description: "Fetch video metadata from YouTube Data API v3 → Volume JSON"
+          environment_key: default
+          notebook_task:
+            notebook_path: ../ingestion/youtube_api_ingest.py
+            base_parameters:
+              channel_handle: "{{job.parameters.channel_handle}}"
+              max_videos: "{{job.parameters.max_videos}}"
+
+        - task_key: comments_ingest
+          description: "Fetch all comments for each video → Volume .txt + NDJSON"
+          depends_on:
+            - task_key: api_ingest
+          environment_key: default
+          notebook_task:
+            notebook_path: ../ingestion/comments_ingest.py
+            base_parameters:
+              channel_handle: "{{job.parameters.channel_handle}}"
+              max_videos: "{{job.parameters.max_videos}}"
+              max_comments_per_video: "{{job.parameters.max_comments_per_video}}"
+
+        - task_key: sdp_pipeline
+          description: "Spark Declarative Pipeline: Bronze → Silver → Gold with sentiment"
+          depends_on:
+            - task_key: comments_ingest
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.youtube_sdp.id}
+            full_refresh: false
+
+      # After this job completes, follow AGENT_BRICKS_SETUP.md to set up
+      # the Knowledge Assistant, Genie Space, and Supervisor Agent.
+
+      permissions:
+        - level: CAN_VIEW
+          group_name: users

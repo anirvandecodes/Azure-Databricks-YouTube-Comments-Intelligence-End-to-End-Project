@@ -1,0 +1,29 @@
+resources:
+  pipelines:
+    youtube_sdp:
+      name: "YouTube Intelligence — SDP Pipeline"
+
+      # Writes to fully-qualified table names (workspace.yt_bronze/silver/gold)
+      # target here is just the default schema for the pipeline UI
+      catalog: ${var.catalog}
+      target: yt_gold
+
+      libraries:
+        - notebook:
+            path: ../pipeline/bronze.py
+        - notebook:
+            path: ../pipeline/silver.py
+        - notebook:
+            path: ../pipeline/gold.py
+
+      serverless: true
+      continuous: false
+      development: false
+      channel: current
+
+      configuration:
+        channel_handle: ${var.channel_handle}
+
+      permissions:
+        - level: CAN_VIEW
+          group_name: users

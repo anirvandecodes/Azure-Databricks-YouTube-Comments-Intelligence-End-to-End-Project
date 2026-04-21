@@ -1,0 +1,411 @@
+{
+  "datasets": [
+    {
+      "name": "ds_channel_kpis",
+      "displayName": "Channel KPIs",
+      "queryLines": [
+        "SELECT channel_handle, COUNT(*) AS videos_analyzed, SUM(total_comments) AS total_comments, ROUND(AVG(sentiment_score), 3) AS avg_sentiment, ROUND(AVG(avg_likes_per_comment), 2) AS avg_engagement, SUM(positive_comments) AS total_positive, SUM(negative_comments) AS total_negative FROM anirvansen_catalog.yt_gold.comment_metrics GROUP BY channel_handle"
+      ]
+    },
+    {
+      "name": "ds_sentiment_ranked",
+      "displayName": "Videos by Sentiment",
+      "queryLines": [
+        "SELECT channel_handle, title, ROUND(sentiment_score, 3) AS sentiment_score, total_comments FROM anirvansen_catalog.yt_gold.comment_metrics ORDER BY sentiment_score DESC"
+      ]
+    },
+    {
+      "name": "ds_top_commented",
+      "displayName": "Top Videos by Comments",
+      "queryLines": [
+        "SELECT channel_handle, title, total_comments, ROUND(avg_likes_per_comment, 2) AS avg_likes_per_comment FROM anirvansen_catalog.yt_gold.comment_metrics ORDER BY total_comments DESC LIMIT 10"
+      ]
+    },
+    {
+      "name": "ds_top_engagement",
+      "displayName": "Top Videos by Engagement",
+      "queryLines": [
+        "SELECT channel_handle, title, ROUND(avg_likes_per_comment, 2) AS avg_likes_per_comment, total_comments FROM anirvansen_catalog.yt_gold.comment_metrics WHERE total_comments >= 3 ORDER BY avg_likes_per_comment DESC LIMIT 10"
+      ]
+    },
+    {
+      "name": "ds_sentiment_breakdown",
+      "displayName": "Sentiment Breakdown",
+      "queryLines": [
+        "SELECT channel_handle, title, 'Positive' AS sentiment_type, positive_comments AS comment_count FROM anirvansen_catalog.yt_gold.comment_metrics ",
+        "UNION ALL SELECT channel_handle, title, 'Negative' AS sentiment_type, negative_comments AS comment_count FROM anirvansen_catalog.yt_gold.comment_metrics ",
+        "UNION ALL SELECT channel_handle, title, 'Neutral' AS sentiment_type, neutral_comments AS comment_count FROM anirvansen_catalog.yt_gold.comment_metrics"
+      ]
+    },
+    {
+      "name": "ds_all_metrics",
+      "displayName": "All Video Metrics",
+      "queryLines": [
+        "SELECT channel_handle, title, total_comments, ROUND(sentiment_score, 3) AS sentiment_score, positive_comments, negative_comments, neutral_comments, ROUND(avg_likes_per_comment, 2) AS avg_likes_per_comment, total_replies, CAST(latest_comment_at AS DATE) AS last_activity FROM anirvansen_catalog.yt_gold.comment_metrics ORDER BY total_comments DESC"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "global-filters",
+      "displayName": "Filters",
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS",
+      "layout": [
+        {
+          "widget": {
+            "name": "filter-channel",
+            "queries": [
+              {"name": "q_kpis",       "query": {"datasetName": "ds_channel_kpis",       "fields": [{"name": "channel_handle", "expression": "`channel_handle`"}], "disaggregated": false}},
+              {"name": "q_sentiment",  "query": {"datasetName": "ds_sentiment_ranked",   "fields": [{"name": "channel_handle", "expression": "`channel_handle`"}], "disaggregated": false}},
+              {"name": "q_commented",  "query": {"datasetName": "ds_top_commented",      "fields": [{"name": "channel_handle", "expression": "`channel_handle`"}], "disaggregated": false}},
+              {"name": "q_engagement", "query": {"datasetName": "ds_top_engagement",     "fields": [{"name": "channel_handle", "expression": "`channel_handle`"}], "disaggregated": false}},
+              {"name": "q_breakdown",  "query": {"datasetName": "ds_sentiment_breakdown","fields": [{"name": "channel_handle", "expression": "`channel_handle`"}], "disaggregated": false}},
+              {"name": "q_all",        "query": {"datasetName": "ds_all_metrics",        "fields": [{"name": "channel_handle", "expression": "`channel_handle`"}], "disaggregated": false}}
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {"fieldName": "channel_handle", "displayName": "Channel", "queryName": "q_kpis"},
+                  {"fieldName": "channel_handle", "displayName": "Channel", "queryName": "q_sentiment"},
+                  {"fieldName": "channel_handle", "displayName": "Channel", "queryName": "q_commented"},
+                  {"fieldName": "channel_handle", "displayName": "Channel", "queryName": "q_engagement"},
+                  {"fieldName": "channel_handle", "displayName": "Channel", "queryName": "q_breakdown"},
+                  {"fieldName": "channel_handle", "displayName": "Channel", "queryName": "q_all"}
+                ]
+              },
+              "frame": {"showTitle": true, "title": "YouTube Channel"}
+            }
+          },
+          "position": {"x": 0, "y": 0, "width": 2, "height": 2}
+        }
+      ]
+    },
+    {
+      "name": "sentiment-pulse",
+      "displayName": "Sentiment Pulse",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layout": [
+        {
+          "widget": {
+            "name": "title",
+            "multilineTextboxSpec": {
+              "lines": ["## YouTube Comment Intelligence Dashboard"]
+            }
+          },
+          "position": {"x": 0, "y": 0, "width": 6, "height": 1}
+        },
+        {
+          "widget": {
+            "name": "subtitle",
+            "multilineTextboxSpec": {
+              "lines": ["Sentiment analysis across all ingested YouTube channels · Powered by Databricks `ai_analyze_sentiment()` · Filter by channel using the dropdown above"]
+            }
+          },
+          "position": {"x": 0, "y": 1, "width": 6, "height": 1}
+        },
+        {
+          "widget": {
+            "name": "kpi-total-comments",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_channel_kpis", "fields": [{"name": "total_comments", "expression": "`total_comments`"}], "disaggregated": true}}],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {"value": {"fieldName": "total_comments", "displayName": "Total Comments Analyzed"}},
+              "frame": {"title": "Total Comments Analyzed", "showTitle": true}
+            }
+          },
+          "position": {"x": 0, "y": 2, "width": 2, "height": 3}
+        },
+        {
+          "widget": {
+            "name": "kpi-videos-analyzed",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_channel_kpis", "fields": [{"name": "videos_analyzed", "expression": "`videos_analyzed`"}], "disaggregated": true}}],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {"value": {"fieldName": "videos_analyzed", "displayName": "Videos Analyzed"}},
+              "frame": {"title": "Videos Analyzed", "showTitle": true}
+            }
+          },
+          "position": {"x": 2, "y": 2, "width": 2, "height": 3}
+        },
+        {
+          "widget": {
+            "name": "kpi-avg-sentiment",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_channel_kpis", "fields": [{"name": "avg_sentiment", "expression": "`avg_sentiment`"}], "disaggregated": true}}],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {"value": {"fieldName": "avg_sentiment", "displayName": "Avg Sentiment Score"}},
+              "frame": {"title": "Avg Sentiment Score  (−1 to +1)", "showTitle": true}
+            }
+          },
+          "position": {"x": 4, "y": 2, "width": 2, "height": 3}
+        },
+        {
+          "widget": {
+            "name": "section-scores",
+            "multilineTextboxSpec": {
+              "lines": ["### Sentiment Score by Video  ·  +1.0 = overwhelmingly positive  ·  −1.0 = overwhelmingly negative"]
+            }
+          },
+          "position": {"x": 0, "y": 5, "width": 6, "height": 1}
+        },
+        {
+          "widget": {
+            "name": "chart-sentiment-scores",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_sentiment_ranked",
+                  "fields": [
+                    {"name": "title",           "expression": "`title`"},
+                    {"name": "sentiment_score", "expression": "`sentiment_score`"}
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {"fieldName": "sentiment_score", "scale": {"type": "quantitative"}, "displayName": "Sentiment Score"},
+                "y": {"fieldName": "title",           "scale": {"type": "categorical"}, "displayName": "Video"}
+              },
+              "frame": {"title": "Sentiment Score per Video (best → worst)", "showTitle": true}
+            }
+          },
+          "position": {"x": 0, "y": 6, "width": 6, "height": 8}
+        },
+        {
+          "widget": {
+            "name": "section-breakdown",
+            "multilineTextboxSpec": {
+              "lines": ["### Comment Sentiment Composition — Positive · Neutral · Negative per Video"]
+            }
+          },
+          "position": {"x": 0, "y": 14, "width": 6, "height": 1}
+        },
+        {
+          "widget": {
+            "name": "chart-sentiment-breakdown",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_sentiment_breakdown",
+                  "fields": [
+                    {"name": "title",         "expression": "`title`"},
+                    {"name": "sentiment_type","expression": "`sentiment_type`"},
+                    {"name": "comment_count", "expression": "`comment_count`"}
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x":     {"fieldName": "comment_count",  "scale": {"type": "quantitative"}, "displayName": "Comments"},
+                "y":     {"fieldName": "title",          "scale": {"type": "categorical"},  "displayName": "Video"},
+                "color": {"fieldName": "sentiment_type", "scale": {"type": "categorical"},  "displayName": "Sentiment"}
+              },
+              "frame": {"title": "Positive vs Neutral vs Negative Breakdown per Video", "showTitle": true}
+            }
+          },
+          "position": {"x": 0, "y": 15, "width": 6, "height": 8}
+        }
+      ]
+    },
+    {
+      "name": "engagement",
+      "displayName": "Engagement & Reach",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layout": [
+        {
+          "widget": {
+            "name": "eng-title",
+            "multilineTextboxSpec": {
+              "lines": ["## Engagement & Reach"]
+            }
+          },
+          "position": {"x": 0, "y": 0, "width": 6, "height": 1}
+        },
+        {
+          "widget": {
+            "name": "eng-subtitle",
+            "multilineTextboxSpec": {
+              "lines": ["Which videos drive the most discussion? Which spark the most reactions per comment?"]
+            }
+          },
+          "position": {"x": 0, "y": 1, "width": 6, "height": 1}
+        },
+        {
+          "widget": {
+            "name": "kpi-total-positive",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_channel_kpis", "fields": [{"name": "total_positive", "expression": "`total_positive`"}], "disaggregated": true}}],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {"value": {"fieldName": "total_positive", "displayName": "Positive Comments"}},
+              "frame": {"title": "Positive Comments", "showTitle": true}
+            }
+          },
+          "position": {"x": 0, "y": 2, "width": 2, "height": 3}
+        },
+        {
+          "widget": {
+            "name": "kpi-total-negative",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_channel_kpis", "fields": [{"name": "total_negative", "expression": "`total_negative`"}], "disaggregated": true}}],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {"value": {"fieldName": "total_negative", "displayName": "Negative Comments"}},
+              "frame": {"title": "Negative Comments", "showTitle": true}
+            }
+          },
+          "position": {"x": 2, "y": 2, "width": 2, "height": 3}
+        },
+        {
+          "widget": {
+            "name": "kpi-avg-engagement",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_channel_kpis", "fields": [{"name": "avg_engagement", "expression": "`avg_engagement`"}], "disaggregated": true}}],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {"value": {"fieldName": "avg_engagement", "displayName": "Avg Likes per Comment"}},
+              "frame": {"title": "Avg Likes per Comment", "showTitle": true}
+            }
+          },
+          "position": {"x": 4, "y": 2, "width": 2, "height": 3}
+        },
+        {
+          "widget": {
+            "name": "section-most-discussed",
+            "multilineTextboxSpec": {"lines": ["### Most Discussed Videos"]}
+          },
+          "position": {"x": 0, "y": 5, "width": 3, "height": 1}
+        },
+        {
+          "widget": {
+            "name": "section-most-engaging",
+            "multilineTextboxSpec": {"lines": ["### Highest Comment Engagement"]}
+          },
+          "position": {"x": 3, "y": 5, "width": 3, "height": 1}
+        },
+        {
+          "widget": {
+            "name": "chart-top-commented",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_top_commented",
+                  "fields": [
+                    {"name": "title",          "expression": "`title`"},
+                    {"name": "total_comments", "expression": "`total_comments`"}
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {"fieldName": "total_comments", "scale": {"type": "quantitative"}, "displayName": "Total Comments"},
+                "y": {"fieldName": "title",          "scale": {"type": "categorical"},  "displayName": "Video"}
+              },
+              "frame": {"title": "Top 10 by Total Comments", "showTitle": true}
+            }
+          },
+          "position": {"x": 0, "y": 6, "width": 3, "height": 7}
+        },
+        {
+          "widget": {
+            "name": "chart-top-engagement",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_top_engagement",
+                  "fields": [
+                    {"name": "title",                 "expression": "`title`"},
+                    {"name": "avg_likes_per_comment", "expression": "`avg_likes_per_comment`"}
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {"fieldName": "avg_likes_per_comment", "scale": {"type": "quantitative"}, "displayName": "Avg Likes per Comment"},
+                "y": {"fieldName": "title",                 "scale": {"type": "categorical"},  "displayName": "Video"}
+              },
+              "frame": {"title": "Top 10 by Avg Likes per Comment", "showTitle": true}
+            }
+          },
+          "position": {"x": 3, "y": 6, "width": 3, "height": 7}
+        },
+        {
+          "widget": {
+            "name": "section-table",
+            "multilineTextboxSpec": {"lines": ["### Complete Metrics Table — All Videos"]}
+          },
+          "position": {"x": 0, "y": 13, "width": 6, "height": 1}
+        },
+        {
+          "widget": {
+            "name": "table-all-metrics",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_all_metrics",
+                  "fields": [
+                    {"name": "title",                 "expression": "`title`"},
+                    {"name": "total_comments",        "expression": "`total_comments`"},
+                    {"name": "sentiment_score",       "expression": "`sentiment_score`"},
+                    {"name": "positive_comments",     "expression": "`positive_comments`"},
+                    {"name": "negative_comments",     "expression": "`negative_comments`"},
+                    {"name": "neutral_comments",      "expression": "`neutral_comments`"},
+                    {"name": "avg_likes_per_comment", "expression": "`avg_likes_per_comment`"},
+                    {"name": "total_replies",         "expression": "`total_replies`"},
+                    {"name": "last_activity",         "expression": "`last_activity`"}
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {"fieldName": "title",                 "displayName": "Video"},
+                  {"fieldName": "total_comments",        "displayName": "Comments"},
+                  {"fieldName": "sentiment_score",       "displayName": "Sentiment Score"},
+                  {"fieldName": "positive_comments",     "displayName": "Positive"},
+                  {"fieldName": "negative_comments",     "displayName": "Negative"},
+                  {"fieldName": "neutral_comments",      "displayName": "Neutral"},
+                  {"fieldName": "avg_likes_per_comment", "displayName": "Avg Likes/Comment"},
+                  {"fieldName": "total_replies",         "displayName": "Replies"},
+                  {"fieldName": "last_activity",         "displayName": "Last Activity"}
+                ]
+              },
+              "frame": {"title": "All Videos — Complete Comment Metrics", "showTitle": true}
+            }
+          },
+          "position": {"x": 0, "y": 14, "width": 6, "height": 10}
+        }
+      ]
+    }
+  ]
+}

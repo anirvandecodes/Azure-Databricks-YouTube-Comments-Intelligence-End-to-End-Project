@@ -1,0 +1,30 @@
+bundle:
+  name: youtube-intelligence-pipeline
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog name
+    default: anirvansen_catalog
+
+  channel_handle:
+    description: "YouTube channel handle to analyse (with @, e.g. @databricks)"
+    default: "@databricks"
+
+  warehouse_id:
+    description: SQL warehouse ID for the AI/BI dashboard
+    default: "bd510c22df2eda92"
+
+targets:
+  dev:
+    default: true
+    mode: production
+    workspace:
+      profile: DEFAULT
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      catalog: anirvansen_catalog
+      channel_handle: "@databricks"
+      warehouse_id: "bd510c22df2eda92"

@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "resources": [
+    {
+      "type": "dashboard",
+      "name": "@anirvandecodes \u2014 YouTube Intelligence Dashboard",
+      "id": "01f13a821bd91e7a887e0b67077a8890",
+      "created_at": "2026-04-17T17:23:12.030670+00:00",
+      "updated_at": "2026-04-17T17:23:12.030670+00:00",
+      "url": "https://dbc-aef35066-afa2.cloud.databricks.com/sql/dashboardsv3/01f13a821bd91e7a887e0b67077a8890"
+    }
+  ]
+}
